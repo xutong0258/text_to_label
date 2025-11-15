@@ -24,8 +24,8 @@ wheels/
 *.egg
 
 # 模型文件
-models/
-*.pkl
+# models/
+# *.pkl
 
 # 数据库
 *.db
