@@ -35,18 +35,19 @@ from config import (
     TEST_SIZE,
     RANDOM_STATE
 )
+from utils.logger_util import *
 
 # 下载nltk所需数据（首次运行需要）
 try:
     nltk.data.find('tokenizers/punkt')
 except LookupError:
-    print("正在下载nltk punkt分词器...")
+    logger.info("正在下载nltk punkt分词器...")
     nltk.download('punkt', quiet=True)
 
 try:
     nltk.data.find('corpora/stopwords')
 except LookupError:
-    print("正在下载nltk停用词表...")
+    logger.info("正在下载nltk停用词表...")
     nltk.download('stopwords', quiet=True)
 
 
@@ -170,24 +171,23 @@ class IssueClassifier:
             X: 特征文本列表
             y: 标签列表
         """
-        print("=" * 60)
-        print("数据准备阶段")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("数据准备阶段")
+        logger.info("=" * 60)
         
         # 合并title和description
-        print("正在合并title和description字段...")
+        logger.info("正在合并title和description字段...")
         df['combined_text'] = df['title'].fillna('') + " " + df['description'].fillna('')
         
         # 预处理文本
-        print("正在进行文本预处理（混合语言分词：英文用nltk，中文用jieba）...")
+        logger.info("正在进行文本预处理（混合语言分词：英文用nltk，中文用jieba）...")
         df['processed_text'] = df['combined_text'].apply(self.preprocess_text)
         
         X = df['processed_text'].tolist()
         y = df['label'].tolist()
         
-        print(f"数据样本数: {len(X)}")
-        print(f"标签分布:\n{df['label'].value_counts().sort_index()}")
-        print()
+        logger.info(f"数据样本数: {len(X)}")
+        logger.info(f"标签分布:\n{df['label'].value_counts().sort_index()}")
         
         return X, y
     
@@ -200,12 +200,12 @@ class IssueClassifier:
             y_train: 训练标签
             model_type: 模型类型
         """
-        print("=" * 60)
-        print("特征提取阶段")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("特征提取阶段")
+        logger.info("=" * 60)
         
         # TF-IDF特征提取
-        print("正在使用TF-IDF进行特征提取...")
+        logger.info("正在使用TF-IDF进行特征提取...")
         self.vectorizer = TfidfVectorizer(
             max_features=5000,
             ngram_range=(1, 2),  # 使用unigram和bigram
@@ -214,23 +214,23 @@ class IssueClassifier:
         )
         
         X_train_tfidf = self.vectorizer.fit_transform(X_train)
-        print(f"TF-IDF特征维度: {X_train_tfidf.shape}")
-        print()
+        logger.info(f"TF-IDF特征维度: {X_train_tfidf.shape}")
+        logger.info()
         
-        print("=" * 60)
-        print("模型训练阶段")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("模型训练阶段")
+        logger.info("=" * 60)
         
         # 选择模型
         if model_type == 'logistic_regression':
-            print("使用模型: 逻辑回归 (Logistic Regression)")
+            logger.info("使用模型: 逻辑回归 (Logistic Regression)")
             self.model = LogisticRegression(
                 max_iter=1000,
                 random_state=RANDOM_STATE,
                 class_weight='balanced'  # 处理类别不平衡
             )
         elif model_type == 'random_forest':
-            print("使用模型: 随机森林 (Random Forest)")
+            logger.info("使用模型: 随机森林 (Random Forest)")
             self.model = RandomForestClassifier(
                 n_estimators=200,
                 random_state=RANDOM_STATE,
@@ -238,14 +238,14 @@ class IssueClassifier:
                 max_depth=20
             )
         elif model_type == 'gradient_boosting':
-            print("使用模型: 梯度提升树 (Gradient Boosting)")
+            logger.info("使用模型: 梯度提升树 (Gradient Boosting)")
             self.model = GradientBoostingClassifier(
                 n_estimators=100,
                 random_state=RANDOM_STATE,
                 max_depth=10
             )
         elif model_type == 'svm':
-            print("使用模型: 支持向量机 (SVM)")
+            logger.info("使用模型: 支持向量机 (SVM)")
             self.model = SVC(
                 kernel='rbf',
                 random_state=RANDOM_STATE,
@@ -256,10 +256,10 @@ class IssueClassifier:
             raise ValueError(f"不支持的模型类型: {model_type}")
         
         # 训练模型
-        print("正在训练模型...")
+        logger.info("正在训练模型...")
         self.model.fit(X_train_tfidf, y_train)
-        print("模型训练完成！")
-        print()
+        logger.info("模型训练完成！")
+        logger.info()
         
     def evaluate(self, X_test, y_test):
         """
@@ -272,9 +272,9 @@ class IssueClassifier:
         Returns:
             评估指标字典
         """
-        print("=" * 60)
-        print("模型评估阶段")
-        print("=" * 60)
+        logger.info("=" * 60)
+        logger.info("模型评估阶段")
+        logger.info("=" * 60)
         
         # 转换测试数据
         X_test_tfidf = self.vectorizer.transform(X_test)
@@ -286,15 +286,15 @@ class IssueClassifier:
         accuracy = accuracy_score(y_test, y_pred)
         f1 = f1_score(y_test, y_pred, average='weighted')
         
-        print(f"测试集准确率: {accuracy:.4f}")
-        print(f"测试集F1分数: {f1:.4f}")
-        print()
+        logger.info(f"测试集准确率: {accuracy:.4f}")
+        logger.info(f"测试集F1分数: {f1:.4f}")
+        logger.info()
         
         # 详细分类报告
-        print("分类报告:")
-        print("-" * 60)
+        logger.info("分类报告:")
+        logger.info("-" * 60)
         target_names = [self.label_mapping[i] for i in sorted(self.label_mapping.keys())]
-        print(classification_report(y_test, y_pred, target_names=target_names))
+        logger.info(classification_report(y_test, y_pred, target_names=target_names))
         
         # 混淆矩阵
         cm = confusion_matrix(y_test, y_pred)
@@ -335,7 +335,7 @@ class IssueClassifier:
         
         # 保存图片
         plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        print(f"混淆矩阵已保存到: {save_path}")
+        logger.info(f"混淆矩阵已保存到: {save_path}")
         plt.close()
     
     def save_model(self):
@@ -345,11 +345,11 @@ class IssueClassifier:
         
         # 保存模型
         joblib.dump(self.model, MODEL_PATH)
-        print(f"模型已保存到: {MODEL_PATH}")
+        logger.info(f"模型已保存到: {MODEL_PATH}")
         
         # 保存向量化器
         joblib.dump(self.vectorizer, VECTORIZER_PATH)
-        print(f"向量化器已保存到: {VECTORIZER_PATH}")
+        logger.info(f"向量化器已保存到: {VECTORIZER_PATH}")
     
     def load_model(self):
         """加载模型和向量化器"""
@@ -358,7 +358,7 @@ class IssueClassifier:
         
         self.model = joblib.load(MODEL_PATH)
         self.vectorizer = joblib.load(VECTORIZER_PATH)
-        print("模型加载成功！")
+        logger.info("模型加载成功！")
     
     def predict(self, title, description):
         """
@@ -406,9 +406,9 @@ def compare_models(X_train, X_test, y_train, y_test):
         y_train: 训练标签
         y_test: 测试标签
     """
-    print("\n" + "=" * 60)
-    print("模型对比实验")
-    print("=" * 60 + "\n")
+    logger.info("\n" + "=" * 60)
+    logger.info("模型对比实验")
+    logger.info("=" * 60 + "\n")
     
     models = {
         'Logistic Regression': 'logistic_regression',
@@ -420,9 +420,9 @@ def compare_models(X_train, X_test, y_train, y_test):
     results = {}
     
     for model_name, model_type in models.items():
-        print(f"\n{'=' * 60}")
-        print(f"训练模型: {model_name}")
-        print(f"{'=' * 60}\n")
+        logger.info(f"\n{'=' * 60}")
+        logger.info(f"训练模型: {model_name}")
+        logger.info(f"{'=' * 60}\n")
         
         classifier = IssueClassifier()
         classifier.train(X_train, y_train, model_type=model_type)
@@ -434,33 +434,32 @@ def compare_models(X_train, X_test, y_train, y_test):
         }
     
     # 打印对比结果
-    print("\n" + "=" * 60)
-    print("模型对比结果")
-    print("=" * 60)
-    print(f"{'模型':<25} {'准确率':<15} {'F1分数':<15}")
-    print("-" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("模型对比结果")
+    logger.info("=" * 60)
+    logger.info(f"{'模型':<25} {'准确率':<15} {'F1分数':<15}")
+    logger.info("-" * 60)
     for model_name, metric in results.items():
-        print(f"{model_name:<25} {metric['accuracy']:<15.4f} {metric['f1_score']:<15.4f}")
+        logger.info(f"{model_name:<25} {metric['accuracy']:<15.4f} {metric['f1_score']:<15.4f}")
     
     # 找出最佳模型
     best_model = max(results.items(), key=lambda x: x[1]['f1_score'])
-    print(f"\n最佳模型: {best_model[0]} (F1={best_model[1]['f1_score']:.4f})")
+    logger.info(f"\n最佳模型: {best_model[0]} (F1={best_model[1]['f1_score']:.4f})")
     
     return results
 
 
 def main():
     """主函数"""
-    print("\n" + "=" * 60)
-    print("Issue场景分类模型训练")
-    print("=" * 60 + "\n")
+    logger.info("\n" + "=" * 60)
+    logger.info("Issue场景分类模型训练")
+    logger.info("=" * 60 + "\n")
     
     # 加载数据
-    print("正在加载数据...")
+    logger.info("正在加载数据...")
     df = pd.read_csv(DATA_PATH)
-    print(f"数据集大小: {df.shape}")
-    print(f"数据集列名: {df.columns.tolist()}")
-    print()
+    logger.info(f"数据集大小: {df.shape}")
+    logger.info(f"数据集列名: {df.columns.tolist()}")
     
     # 创建分类器
     classifier = IssueClassifier()
@@ -469,26 +468,26 @@ def main():
     X, y = classifier.prepare_data(df)
     
     # 划分训练集和测试集
-    print("=" * 60)
-    print("划分训练集和测试集")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("划分训练集和测试集")
+    logger.info("=" * 60)
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, 
         test_size=TEST_SIZE, 
         random_state=RANDOM_STATE,
         stratify=y  # 分层采样，保持类别比例
     )
-    print(f"训练集大小: {len(X_train)}")
-    print(f"测试集大小: {len(X_test)}")
-    print()
+    logger.info(f"训练集大小: {len(X_train)}")
+    logger.info(f"测试集大小: {len(X_test)}")
+    logger.info()
     
     # 模型对比实验
     compare_models(X_train, X_test, y_train, y_test)
     
     # 训练最终模型（使用逻辑回归，平衡速度和效果）
-    print("\n" + "=" * 60)
-    print("训练最终部署模型")
-    print("=" * 60 + "\n")
+    logger.info("\n" + "=" * 60)
+    logger.info("训练最终部署模型")
+    logger.info("=" * 60 + "\n")
     
     final_classifier = IssueClassifier()
     final_classifier.train(X_train, y_train, model_type='logistic_regression')
@@ -500,15 +499,15 @@ def main():
     final_classifier.plot_confusion_matrix(metrics['confusion_matrix'])
     
     # 保存模型
-    print("\n" + "=" * 60)
-    print("保存模型")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("保存模型")
+    logger.info("=" * 60)
     final_classifier.save_model()
     
     # 测试预测功能
-    print("\n" + "=" * 60)
-    print("测试预测功能")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("测试预测功能")
+    logger.info("=" * 60)
     
     test_case = {
         'title': 'System hang when running stress test',
@@ -516,19 +515,19 @@ def main():
     }
     
     result = final_classifier.predict(test_case['title'], test_case['description'])
-    print(f"\n测试用例:")
-    print(f"  Title: {test_case['title']}")
-    print(f"  Description: {test_case['description']}")
-    print(f"\n预测结果:")
-    print(f"  场景: {result['predicted_scene']}")
-    print(f"  置信度: {result['confidence']:.4f}")
-    print(f"  所有场景概率:")
+    logger.info(f"\n测试用例:")
+    logger.info(f"  Title: {test_case['title']}")
+    logger.info(f"  Description: {test_case['description']}")
+    logger.info(f"\n预测结果:")
+    logger.info(f"  场景: {result['predicted_scene']}")
+    logger.info(f"  置信度: {result['confidence']:.4f}")
+    logger.info(f"  所有场景概率:")
     for scene, prob in result['all_probabilities'].items():
-        print(f"    {scene}: {prob:.4f}")
+        logger.info(f"    {scene}: {prob:.4f}")
     
-    print("\n" + "=" * 60)
-    print("训练完成！")
-    print("=" * 60)
+    logger.info("\n" + "=" * 60)
+    logger.info("训练完成！")
+    logger.info("=" * 60)
 
 
 if __name__ == "__main__":

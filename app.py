@@ -15,7 +15,7 @@ import uvicorn
 
 from train_model import IssueClassifier
 from config import LABEL_MAPPING, LABEL_REVERSE_MAPPING, FEEDBACK_DB_PATH
-
+from utils.logger_util import *
 
 # ============================================================================
 # 数据模型定义
@@ -197,31 +197,31 @@ async def startup_event():
     """应用启动时加载模型和初始化数据库"""
     global classifier, feedback_db
     
-    print("=" * 60)
-    print("正在启动Issue场景分类服务...")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("正在启动Issue场景分类服务...")
+    logger.info("=" * 60)
     
     # 加载模型
     try:
         classifier = IssueClassifier()
         classifier.load_model()
-        print("✓ 模型加载成功")
+        logger.info("✓ 模型加载成功")
     except Exception as e:
-        print(f"✗ 模型加载失败: {e}")
-        print("请先运行 train_model.py 训练模型")
+        logger.info(f"✗ 模型加载失败: {e}")
+        logger.info("请先运行 train_model.py 训练模型")
         raise
     
     # 初始化数据库
     try:
         feedback_db = FeedbackDatabase()
-        print("✓ 数据库初始化成功")
+        logger.info("✓ 数据库初始化成功")
     except Exception as e:
-        print(f"✗ 数据库初始化失败: {e}")
+        logger.info(f"✗ 数据库初始化失败: {e}")
         raise
     
-    print("=" * 60)
-    print("服务启动完成！")
-    print("=" * 60)
+    logger.info("=" * 60)
+    logger.info("服务启动完成！")
+    logger.info("=" * 60)
 
 
 @app.get("/")
@@ -418,9 +418,9 @@ async def get_labels():
 
 def main():
     """启动Web服务"""
-    print("\n" + "=" * 60)
-    print("Issue场景分类Web服务")
-    print("=" * 60 + "\n")
+    logger.info("\n" + "=" * 60)
+    logger.info("Issue场景分类Web服务")
+    logger.info("=" * 60 + "\n")
     
     uvicorn.run(
         "app:app",
